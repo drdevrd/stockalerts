@@ -2,12 +2,15 @@ package com.drdevrd.stockalerts.ui
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -37,9 +40,26 @@ class MainActivity : AppCompatActivity() {
 
         NotificationHelper.ensureChannel(this)
 
-        adapter = StockListAdapter(onDelete = { stock -> deleteStock(stock) })
+        adapter = StockListAdapter(
+            onDelete = { stock -> deleteStock(stock) },
+            onSelectionChanged = { selected -> updateSelectionBar(selected.size) }
+        )
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
+
+        binding.searchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                adapter.setQuery(s?.toString().orEmpty())
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        binding.selectAllCheckbox.setOnCheckedChangeListener { _, isChecked ->
+            adapter.selectAllVisible(isChecked)
+        }
+
+        binding.deleteSelectedButton.setOnClickListener { confirmDeleteSelected() }
 
         binding.fabAdd.setOnClickListener {
             startActivity(Intent(this, AddStockActivity::class.java))
@@ -57,7 +77,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Opening the app counts as having seen today's alert(s) - stop repeating.
         for (id in listOf(NotificationHelper.NOTIF_ID_NSE, NotificationHelper.NOTIF_ID_US)) {
             if (AlertState.isActive(this, id)) {
                 AlertState.clear(this, id)
@@ -66,6 +85,45 @@ class MainActivity : AppCompatActivity() {
             }
         }
         refreshList()
+    }
+
+    private fun updateSelectionBar(count: Int) {
+        binding.selectionBar.visibility = if (count > 0) android.view.View.VISIBLE else android.view.View.GONE
+        binding.selectionCountText.text = "$count selected"
+    }
+
+    private fun confirmDeleteSelected() {
+        val selected = adapter.getSelectedStocks()
+        if (selected.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setTitle("Delete ${selected.size} stock(s)?")
+            .setMessage("This can't be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                lifecycleScope.launch {
+                    AppDatabase.getInstance(this@MainActivity).stockDao().deleteByIds(selected.map { it.id })
+                    adapter.clearSelection()
+                    binding.selectAllCheckbox.isChecked = false
+                    refreshList()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmDeleteAll() {
+        AlertDialog.Builder(this)
+            .setTitle("Delete ALL stocks?")
+            .setMessage("This removes your entire watchlist, including the default list. This can't be undone.")
+            .setPositiveButton("Delete all") { _, _ ->
+                lifecycleScope.launch {
+                    AppDatabase.getInstance(this@MainActivity).stockDao().deleteAll()
+                    adapter.clearSelection()
+                    binding.selectAllCheckbox.isChecked = false
+                    refreshList()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun observeStocks() {
@@ -142,10 +200,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == com.drdevrd.stockalerts.R.id.action_settings) {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            return true
+        return when (item.itemId) {
+            com.drdevrd.stockalerts.R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
+            com.drdevrd.stockalerts.R.id.action_delete_all -> {
+                confirmDeleteAll()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
-        return super.onOptionsItemSelected(item)
     }
 }
