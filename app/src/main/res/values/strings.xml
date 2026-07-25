@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stock Alerts</string>
+    <string name="add_stock">Add Stock</string>
+    <string name="settings">Settings</string>
+    <string name="finnhub_key_hint">Finnhub API Key</string>
+    <string name="repeat_interval_hint">Repeat reminder every (minutes)</string>
+    <string name="save">Save</string>
+    <string name="symbol_hint">Symbol (e.g. RELIANCE or AAPL)</string>
+    <string name="exchange_hint">Exchange</string>
+    <string name="target_price_hint">Target price (optional)</string>
+    <string name="no_stocks_message">No stocks tracked yet. Tap + to add one.</string>
+</resources>
