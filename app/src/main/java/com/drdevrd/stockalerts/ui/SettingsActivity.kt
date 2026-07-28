@@ -1,13 +1,20 @@
 package com.drdevrd.stockalerts.ui
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.drdevrd.stockalerts.alerts.AlertEngine
+import com.drdevrd.stockalerts.data.Exchange
 import com.drdevrd.stockalerts.data.Prefs
 import com.drdevrd.stockalerts.databinding.ActivitySettingsBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -42,6 +49,41 @@ class SettingsActivity : AppCompatActivity() {
             Prefs.setRepeatIntervalMinutes(this, interval.coerceAtLeast(1))
             Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
             finish()
+        }
+
+        binding.testNseButton.setOnClickListener { runTest(Exchange.NSE) }
+        binding.testUsButton.setOnClickListener { runTest(Exchange.US) }
+    }
+
+    private fun runTest(exchange: Exchange) {
+        val button = if (exchange == Exchange.NSE) binding.testNseButton else binding.testUsButton
+        button.isEnabled = false
+        button.text = "Testing..."
+
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                AlertEngine.runCheck(this@SettingsActivity, exchange, force = true)
+            }
+            button.isEnabled = true
+            button.text = if (exchange == Exchange.NSE) "Test NSE alert now" else "Test US alert now"
+
+            val summary = buildString {
+                append("${exchange.name}: ${result.stocksInList} stocks in list\n")
+                append("Fetched successfully: ${result.fetchSucceeded}\n")
+                append("Failed to fetch: ${result.fetchFailed}\n")
+                if (result.failedSymbols.isNotEmpty()) {
+                    append("Failed symbols: ${result.failedSymbols.take(10).joinToString(", ")}")
+                    if (result.failedSymbols.size > 10) append(" (+${result.failedSymbols.size - 10} more)")
+                    append("\n")
+                }
+                append(if (result.notificationShown) "\nNotification WAS shown - check your notification shade." else "\nNo notification shown.")
+            }
+
+            AlertDialog.Builder(this@SettingsActivity)
+                .setTitle("Test result")
+                .setMessage(summary)
+                .setPositiveButton("OK", null)
+                .show()
         }
     }
 }

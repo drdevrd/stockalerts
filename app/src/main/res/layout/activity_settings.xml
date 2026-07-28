@@ -52,6 +52,30 @@
         android:layout_marginTop="24dp"
         android:text="Whitelist app from battery optimization" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Test alerts now (bypasses schedule/weekend check):"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginTop="24dp" />
+
+    <Button
+        android:id="@+id/testNseButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Test NSE alert now"
+        android:backgroundTint="@color/accent" />
+
+    <Button
+        android:id="@+id/testUsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Test US alert now"
+        android:backgroundTint="@color/accent" />
+
     <Button
         android:id="@+id/saveButton"
         android:layout_width="match_parent"
