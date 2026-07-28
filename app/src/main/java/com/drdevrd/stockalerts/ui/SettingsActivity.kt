@@ -76,6 +76,9 @@ class SettingsActivity : AppCompatActivity() {
                     if (result.failedSymbols.size > 10) append(" (+${result.failedSymbols.size - 10} more)")
                     append("\n")
                 }
+                result.sampleError?.let {
+                    append("\nExample error:\n$it\n")
+                }
                 append(if (result.notificationShown) "\nNotification WAS shown - check your notification shade." else "\nNo notification shown.")
             }
 

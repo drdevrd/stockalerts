@@ -17,7 +17,8 @@ object AlertEngine {
         val fetchSucceeded: Int,
         val fetchFailed: Int,
         val notificationShown: Boolean,
-        val failedSymbols: List<String>
+        val failedSymbols: List<String>,
+        val sampleError: String?
     )
 
     /**
@@ -34,7 +35,7 @@ object AlertEngine {
         val dao = AppDatabase.getInstance(context).stockDao()
         val stocks = dao.getByExchange(exchange)
         if (stocks.isEmpty()) {
-            return RunResult(0, 0, 0, false, emptyList())
+            return RunResult(0, 0, 0, false, emptyList(), null)
         }
 
         val apiKey = Prefs.getFinnhubApiKey(context)
@@ -46,13 +47,16 @@ object AlertEngine {
         val testLines = mutableListOf<String>()
         val failedSymbols = mutableListOf<String>()
         var successCount = 0
+        var sampleError: String? = null
 
         for (stock in stocks) {
             if (!force && stock.lastAlertedDate == dateStr) continue
 
-            val result = fetcher.fetch(stock.symbol, stock.exchange)
+            val outcome = fetcher.fetch(stock.symbol, stock.exchange)
+            val result = outcome.result
             if (result == null) {
                 failedSymbols.add(stock.symbol)
+                if (sampleError == null) sampleError = outcome.error
                 continue
             }
             successCount++
@@ -91,7 +95,7 @@ object AlertEngine {
         val title = if (exchange == Exchange.NSE) "NSE closing prices" else "US closing prices"
 
         val shouldNotify = if (force) {
-            testLines.isNotEmpty() // show something if ANY fetch worked, for diagnostic purposes
+            testLines.isNotEmpty()
         } else {
             closeLines.isNotEmpty() || targetLines.isNotEmpty()
         }
@@ -113,7 +117,8 @@ object AlertEngine {
             fetchSucceeded = successCount,
             fetchFailed = failedSymbols.size,
             notificationShown = shouldNotify,
-            failedSymbols = failedSymbols
+            failedSymbols = failedSymbols,
+            sampleError = sampleError
         )
     }
 }
