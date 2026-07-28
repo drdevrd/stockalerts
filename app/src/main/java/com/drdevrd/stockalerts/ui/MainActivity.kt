@@ -42,7 +42,13 @@ class MainActivity : AppCompatActivity() {
 
         adapter = StockListAdapter(
             onDelete = { stock -> deleteStock(stock) },
-            onSelectionChanged = { selected -> updateSelectionBar(selected.size) }
+            onSelectionChanged = { selected -> updateSelectionBar(selected.size) },
+            onEdit = { stock ->
+                startActivity(
+                    Intent(this, AddStockActivity::class.java)
+                        .putExtra(AddStockActivity.EXTRA_STOCK_ID, stock.id)
+                )
+            }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter

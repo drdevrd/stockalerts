@@ -9,7 +9,8 @@ import com.drdevrd.stockalerts.databinding.ItemStockBinding
 
 class StockListAdapter(
     private val onDelete: (StockEntity) -> Unit,
-    private val onSelectionChanged: (Set<Long>) -> Unit
+    private val onSelectionChanged: (Set<Long>) -> Unit,
+    private val onEdit: (StockEntity) -> Unit
 ) : RecyclerView.Adapter<StockListAdapter.VH>() {
 
     private var allItems: List<StockEntity> = emptyList()
@@ -88,6 +89,7 @@ class StockListAdapter(
         }
 
         holder.binding.deleteButton.setOnClickListener { onDelete(stock) }
+        holder.binding.root.setOnClickListener { onEdit(stock) }
     }
 
     override fun getItemCount() = filtered.size

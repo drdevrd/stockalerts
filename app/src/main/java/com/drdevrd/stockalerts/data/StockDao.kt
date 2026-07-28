@@ -35,4 +35,7 @@ interface StockDao {
 
     @Query("SELECT * FROM stocks WHERE symbol = :symbol AND exchange = :exchange LIMIT 1")
     suspend fun find(symbol: String, exchange: Exchange): StockEntity?
+
+    @Query("SELECT * FROM stocks WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): StockEntity?
 }
