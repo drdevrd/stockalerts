@@ -24,9 +24,11 @@ object AlarmScheduler {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
 
         val triggerMillis = when (exchange) {
-            // NSE closes 15:30 IST, Mon-Fri. We schedule daily; the receiver
-            // itself skips weekends/holidays gracefully (empty/stale response).
-            Exchange.NSE -> nextOccurrence(ZoneId.of("Asia/Kolkata"), LocalTime.of(15, 30))
+            // NSE closes 15:30 IST, Mon-Fri. GOOGLEFINANCE data is ~20min
+            // delayed, so we check at 15:50 (not 15:30) to make sure the
+            // fetched price reflects the actual finalized close, not a
+            // pre-close snapshot from the delayed feed.
+            Exchange.NSE -> nextOccurrence(ZoneId.of("Asia/Kolkata"), LocalTime.of(15, 50))
             // US market closes 16:00 America/New_York - java.time handles
             // EST/EDT transitions automatically so this stays correct year-round.
             Exchange.US -> nextOccurrence(ZoneId.of("America/New_York"), LocalTime.of(16, 0))

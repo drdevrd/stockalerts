@@ -30,6 +30,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         binding.apiKeyInput.setText(Prefs.getFinnhubApiKey(this))
+        binding.gsheetsUrlInput.setText(Prefs.getGoogleSheetsCsvUrl(this))
         binding.repeatIntervalInput.setText(Prefs.getRepeatIntervalMinutes(this).toString())
 
         binding.batteryOptButton.setOnClickListener {
@@ -44,8 +45,10 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.saveButton.setOnClickListener {
             val key = binding.apiKeyInput.text?.toString()?.trim().orEmpty()
+            val gsheetsUrl = binding.gsheetsUrlInput.text?.toString()?.trim().orEmpty()
             val interval = binding.repeatIntervalInput.text?.toString()?.trim()?.toIntOrNull() ?: 15
             Prefs.setFinnhubApiKey(this, key)
+            Prefs.setGoogleSheetsCsvUrl(this, gsheetsUrl)
             Prefs.setRepeatIntervalMinutes(this, interval.coerceAtLeast(1))
             Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
             finish()

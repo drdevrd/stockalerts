@@ -6,7 +6,9 @@ import com.drdevrd.stockalerts.data.AlertState
 import com.drdevrd.stockalerts.data.AppDatabase
 import com.drdevrd.stockalerts.data.Exchange
 import com.drdevrd.stockalerts.data.Prefs
-import com.drdevrd.stockalerts.network.PriceFetcher
+import com.drdevrd.stockalerts.network.FinnhubApi
+import com.drdevrd.stockalerts.network.GoogleSheetsApi
+import com.drdevrd.stockalerts.network.PriceResult
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -26,10 +28,7 @@ object AlertEngine {
      *
      * @param force When true (used by the manual "Test Now" button), skips the
      * weekend check and the "already alerted today" guard, and always shows a
-     * notification if at least one stock's price was fetched successfully -
-     * even if no target/close condition would normally trigger one. This is
-     * purely for diagnosing whether the network fetch and notification pipeline
-     * work at all, independent of today's actual market state.
+     * notification if at least one stock's price was fetched successfully.
      */
     suspend fun runCheck(context: Context, exchange: Exchange, force: Boolean = false): RunResult {
         val dao = AppDatabase.getInstance(context).stockDao()
@@ -38,8 +37,6 @@ object AlertEngine {
             return RunResult(0, 0, 0, false, emptyList(), null)
         }
 
-        val apiKey = Prefs.getFinnhubApiKey(context)
-        val fetcher = PriceFetcher(apiKey)
         val dateStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
         val closeLines = mutableListOf<String>()
@@ -49,14 +46,37 @@ object AlertEngine {
         var successCount = 0
         var sampleError: String? = null
 
+        // NSE fetches everything in one batch call (one CSV covers all symbols);
+        // US still fetches per-symbol via Finnhub.
+        var nseBatch: Map<String, PriceResult> = emptyMap()
+        if (exchange == Exchange.NSE) {
+            val csvUrl = Prefs.getGoogleSheetsCsvUrl(context)
+            val sheetResult = GoogleSheetsApi().fetchAll(csvUrl)
+            nseBatch = sheetResult.bySymbol
+            if (sheetResult.error != null) sampleError = sheetResult.error
+        }
+
+        val finnhub = if (exchange == Exchange.US) FinnhubApi(Prefs.getFinnhubApiKey(context)) else null
+
         for (stock in stocks) {
             if (!force && stock.lastAlertedDate == dateStr) continue
 
-            val outcome = fetcher.fetch(stock.symbol, stock.exchange)
-            val result = outcome.result
+            val result: PriceResult? = if (exchange == Exchange.NSE) {
+                val hit = nseBatch[stock.symbol.uppercase()]
+                if (hit == null && sampleError == null) {
+                    sampleError = "${stock.symbol} not found in the published sheet - check it has a row with that exact symbol"
+                }
+                hit
+            } else {
+                val quote = finnhub?.getQuote(stock.symbol)
+                if (quote == null && sampleError == null) {
+                    sampleError = "Finnhub returned no data for ${stock.symbol} (check API key, or symbol may be wrong)"
+                }
+                quote?.let { PriceResult(it.current, it.previousClose, it.changePercent) }
+            }
+
             if (result == null) {
                 failedSymbols.add(stock.symbol)
-                if (sampleError == null) sampleError = outcome.error
                 continue
             }
             successCount++
@@ -64,9 +84,7 @@ object AlertEngine {
             val sign = if (result.changePercent >= 0) "+" else ""
             val closeLine = "${stock.symbol}: ${"%.2f".format(result.current)} ($sign${"%.2f".format(result.changePercent)}%)"
 
-            if (force) {
-                testLines.add(closeLine)
-            }
+            if (force) testLines.add(closeLine)
             if (stock.alertMode == AlertMode.DAILY_CLOSE || stock.alertMode == AlertMode.BOTH) {
                 closeLines.add(closeLine)
             }
@@ -94,11 +112,7 @@ object AlertEngine {
         val notifId = if (exchange == Exchange.NSE) NotificationHelper.NOTIF_ID_NSE else NotificationHelper.NOTIF_ID_US
         val title = if (exchange == Exchange.NSE) "NSE closing prices" else "US closing prices"
 
-        val shouldNotify = if (force) {
-            testLines.isNotEmpty()
-        } else {
-            closeLines.isNotEmpty() || targetLines.isNotEmpty()
-        }
+        val shouldNotify = if (force) testLines.isNotEmpty() else (closeLines.isNotEmpty() || targetLines.isNotEmpty())
 
         if (shouldNotify) {
             val messageParts = mutableListOf<String>()

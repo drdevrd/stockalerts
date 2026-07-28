@@ -9,6 +9,7 @@ object Prefs {
 
     private const val FILE_NAME = "secure_prefs"
     private const val KEY_FINNHUB_API_KEY = "finnhub_api_key"
+    private const val KEY_GSHEETS_CSV_URL = "gsheets_csv_url"
     private const val KEY_REPEAT_INTERVAL_MIN = "repeat_interval_min"
     private const val KEY_FIRST_LAUNCH_DONE = "first_launch_done"
 
@@ -31,6 +32,13 @@ object Prefs {
 
     fun setFinnhubApiKey(context: Context, key: String) {
         prefs(context).edit().putString(KEY_FINNHUB_API_KEY, key).apply()
+    }
+
+    fun getGoogleSheetsCsvUrl(context: Context): String =
+        prefs(context).getString(KEY_GSHEETS_CSV_URL, "") ?: ""
+
+    fun setGoogleSheetsCsvUrl(context: Context, url: String) {
+        prefs(context).edit().putString(KEY_GSHEETS_CSV_URL, url).apply()
     }
 
     fun getRepeatIntervalMinutes(context: Context): Int =
