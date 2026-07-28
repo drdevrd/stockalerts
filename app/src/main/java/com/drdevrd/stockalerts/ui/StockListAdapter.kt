@@ -8,53 +8,15 @@ import com.drdevrd.stockalerts.data.StockEntity
 import com.drdevrd.stockalerts.databinding.ItemStockBinding
 
 class StockListAdapter(
-    private val onDelete: (StockEntity) -> Unit,
-    private val onSelectionChanged: (Set<Long>) -> Unit
+    private val onDelete: (StockEntity) -> Unit
 ) : RecyclerView.Adapter<StockListAdapter.VH>() {
 
-    private var allItems: List<StockEntity> = emptyList()
-    private var filtered: MutableList<StockEntity> = mutableListOf()
-    private var query: String = ""
-    private val selectedIds = mutableSetOf<Long>()
+    private val items = mutableListOf<StockEntity>()
 
     fun submit(newItems: List<StockEntity>) {
-        allItems = newItems
-        // Drop any selections for stocks that no longer exist (e.g. deleted elsewhere)
-        selectedIds.retainAll(newItems.map { it.id }.toSet())
-        applyFilter()
-    }
-
-    fun setQuery(q: String) {
-        query = q
-        applyFilter()
-    }
-
-    private fun applyFilter() {
-        filtered = if (query.isBlank()) {
-            allItems.toMutableList()
-        } else {
-            allItems.filter {
-                it.symbol.contains(query, ignoreCase = true) ||
-                it.displayName.contains(query, ignoreCase = true)
-            }.toMutableList()
-        }
+        items.clear()
+        items.addAll(newItems)
         notifyDataSetChanged()
-        onSelectionChanged(selectedIds)
-    }
-
-    fun selectAllVisible(select: Boolean) {
-        if (select) selectedIds.addAll(filtered.map { it.id })
-        else selectedIds.removeAll(filtered.map { it.id }.toSet())
-        notifyDataSetChanged()
-        onSelectionChanged(selectedIds)
-    }
-
-    fun getSelectedStocks(): List<StockEntity> = allItems.filter { it.id in selectedIds }
-
-    fun clearSelection() {
-        selectedIds.clear()
-        notifyDataSetChanged()
-        onSelectionChanged(selectedIds)
     }
 
     inner class VH(val binding: ItemStockBinding) : RecyclerView.ViewHolder(binding.root)
@@ -65,7 +27,7 @@ class StockListAdapter(
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        val stock = filtered[position]
+        val stock = items[position]
         holder.binding.symbolText.text = "${stock.symbol}  (${stock.exchange})"
         holder.binding.nameText.text = stock.displayName
 
@@ -79,16 +41,8 @@ class StockListAdapter(
         }
         holder.binding.detailText.text = detail
 
-        // Avoid stray listener firing from view recycling
-        holder.binding.selectCheckbox.setOnCheckedChangeListener(null)
-        holder.binding.selectCheckbox.isChecked = stock.id in selectedIds
-        holder.binding.selectCheckbox.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) selectedIds.add(stock.id) else selectedIds.remove(stock.id)
-            onSelectionChanged(selectedIds)
-        }
-
         holder.binding.deleteButton.setOnClickListener { onDelete(stock) }
     }
 
-    override fun getItemCount() = filtered.size
+    override fun getItemCount() = items.size
 }

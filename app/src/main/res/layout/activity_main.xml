@@ -5,7 +5,6 @@
     android:layout_height="match_parent">
 
     <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
@@ -16,64 +15,6 @@
             android:background="@color/primary"
             app:titleTextColor="#FFFFFF"
             app:title="@string/app_name" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/background"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
-            android:gravity="center_vertical">
-
-            <EditText
-                android:id="@+id/searchInput"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Search symbol or name"
-                android:inputType="text"
-                android:maxLines="1"
-                android:background="@android:drawable/edit_text"
-                android:paddingHorizontal="8dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/selectionBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/primary_dark"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
-            android:gravity="center_vertical"
-            android:visibility="gone">
-
-            <CheckBox
-                android:id="@+id/selectAllCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select all"
-                android:textColor="#FFFFFF"
-                app:buttonTint="#FFFFFF" />
-
-            <TextView
-                android:id="@+id/selectionCountText"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:textColor="#FFFFFF"
-                android:gravity="center"
-                android:text="0 selected" />
-
-            <Button
-                android:id="@+id/deleteSelectedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Delete"
-                android:backgroundTint="@color/accent_red" />
-        </LinearLayout>
-
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView

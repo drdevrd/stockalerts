@@ -24,12 +24,6 @@ interface StockDao {
     @Delete
     suspend fun delete(stock: StockEntity)
 
-    @Query("DELETE FROM stocks")
-    suspend fun deleteAll()
-
-    @Query("DELETE FROM stocks WHERE id IN (:ids)")
-    suspend fun deleteByIds(ids: List<Long>)
-
     @Query("SELECT COUNT(*) FROM stocks")
     suspend fun count(): Int
 
