@@ -8,7 +8,10 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.drdevrd.stockalerts.alerts.AlarmScheduler
 import com.drdevrd.stockalerts.alerts.AlertEngine
+import com.drdevrd.stockalerts.alerts.NotificationHelper
+import com.drdevrd.stockalerts.data.AlertState
 import com.drdevrd.stockalerts.data.Exchange
 import com.drdevrd.stockalerts.data.Prefs
 import com.drdevrd.stockalerts.databinding.ActivitySettingsBinding
@@ -33,6 +36,11 @@ class SettingsActivity : AppCompatActivity() {
         binding.gsheetsUrlInput.setText(Prefs.getGoogleSheetsCsvUrl(this))
         binding.repeatIntervalInput.setText(Prefs.getRepeatIntervalMinutes(this).toString())
 
+        // Re-seed the daily alarms here too, not just on the main screen - an app
+        // update wipes previously scheduled alarms, and this screen is visited
+        // often enough during setup/testing that it's a reliable safety net.
+        AlarmScheduler.scheduleAll(this)
+
         binding.batteryOptButton.setOnClickListener {
             try {
                 startActivity(
@@ -56,6 +64,23 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.testNseButton.setOnClickListener { runTest(Exchange.NSE) }
         binding.testUsButton.setOnClickListener { runTest(Exchange.US) }
+
+        binding.stopRepeatingButton.setOnClickListener {
+            var stoppedAny = false
+            for (id in listOf(NotificationHelper.NOTIF_ID_NSE, NotificationHelper.NOTIF_ID_US)) {
+                if (AlertState.isActive(this, id)) {
+                    AlertState.clear(this, id)
+                    AlarmScheduler.cancelRepeat(this, id)
+                    NotificationHelper.cancel(this, id)
+                    stoppedAny = true
+                }
+            }
+            Toast.makeText(
+                this,
+                if (stoppedAny) "Repeating alerts stopped" else "No repeating alert was active",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun runTest(exchange: Exchange) {

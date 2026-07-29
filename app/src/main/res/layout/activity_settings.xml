@@ -72,6 +72,14 @@
         android:layout_marginTop="24dp"
         android:text="Whitelist app from battery optimization" />
 
+    <Button
+        android:id="@+id/stopRepeatingButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Stop repeating alerts now"
+        android:backgroundTint="@color/accent_red" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
